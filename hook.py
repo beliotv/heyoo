@@ -1,5 +1,27 @@
 import os
+import sys
+import types
 import logging
+
+# urllib3 2.x removed contrib.appengine. Old requests-toolbelt still imports it.
+def _shim_urllib3_appengine() -> None:
+    try:
+        from urllib3.contrib import appengine  # noqa: F401
+        return
+    except Exception:
+        pass
+    dummy = types.ModuleType("urllib3.contrib.appengine")
+    sys.modules["urllib3.contrib.appengine"] = dummy
+    sys.modules["requests.packages.urllib3.contrib.appengine"] = dummy
+    try:
+        import urllib3.contrib as contrib
+        if not hasattr(contrib, "appengine"):
+            contrib.appengine = dummy
+    except Exception:
+        pass
+
+
+_shim_urllib3_appengine()
 
 from dotenv import load_dotenv
 from flask import Flask, request, make_response
@@ -12,6 +34,7 @@ app = Flask(__name__)
 TOKEN = os.environ.get("TOKEN")
 PHONE_NUMBER_ID = os.environ.get("PHONE_NUMBER_ID")
 VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN")
+API_VERSION = os.getenv("WHATSAPP_API_VERSION", "v21.0")
 
 if not TOKEN or not PHONE_NUMBER_ID or not VERIFY_TOKEN:
     raise RuntimeError(
@@ -19,6 +42,10 @@ if not TOKEN or not PHONE_NUMBER_ID or not VERIFY_TOKEN:
     )
 
 messenger = WhatsApp(TOKEN, phone_number_id=PHONE_NUMBER_ID)
+messenger.api_version = API_VERSION
+messenger.base_url = f"https://graph.facebook.com/{API_VERSION}"
+messenger.v15_base_url = messenger.base_url
+messenger.url = f"{messenger.base_url}/{PHONE_NUMBER_ID}/messages"
 
 logging.basicConfig(
     level=logging.INFO,
