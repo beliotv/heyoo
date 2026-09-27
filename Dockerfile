@@ -1,18 +1,15 @@
-FROM python:3.8-slim-buster
+FROM python:3.11-slim-bookworm
 
 WORKDIR /code
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-COPY requirements.txt requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+RUN pip install --no-cache-dir -e .
 
-RUN python -m pip install --upgrade pip
-
-RUN pip3 install --upgrade heyoo
-
-RUN pip3 install -r requirements.txt
-
-CMD [ "python", "hook.py" ]
-
-#Call to using test functions
-# CMD [ "python", "examples/sending_template_message.py" ]
+EXPOSE 5000
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "hook:app"]

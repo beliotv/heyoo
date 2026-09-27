@@ -1,10 +1,13 @@
-version: "3"
 services:
   hook:
     container_name: heyoo
-    image: heyoo:0.0.4
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     ports:
       - "5000:5000"
+    env_file:
+      - .env
+    environment:
+      TOKEN: ${TOKEN}
+      PHONE_NUMBER_ID: ${PHONE_NUMBER_ID}
+      VERIFY_TOKEN: ${VERIFY_TOKEN}
+      WHATSAPP_API_VERSION: ${WHATSAPP_API_VERSION:-v21.0}
